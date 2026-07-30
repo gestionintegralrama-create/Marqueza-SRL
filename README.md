@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marqueza SRL · Sistema de Pedidos</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F3EC;
+    --paper-2:#EFEADF;
+    --ink:#1F2A37;
+    --ink-soft:#5B6472;
+    --navy:#14213D;
+    --navy-2:#1D3059;
+    --teal:#1E7A63;
+    --teal-soft:#E4F1EC;
+    --amber:#C07A2A;
+    --amber-soft:#F6E9D6;
+    --red:#B3412E;
+    --red-soft:#F6E3DE;
+    --line:#D9D2C2;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;}
+  .font-display{font-family:'Zilla Slab',serif;}
+  .font-mono{font-family:'IBM Plex Mono',monospace;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:6px;font-weight:600;font-size:14px;cursor:pointer;border:1px solid transparent;transition:transform .08s ease, filter .1s ease;}
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--navy);color:#fff;}
+  .btn-primary:hover{filter:brightness(1.12);}
+  .btn-accent{background:var(--teal);color:#fff;}
+  .btn-accent:hover{filter:brightness(1.1);}
+  .btn-amber{background:var(--amber);color:#fff;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
+  .btn-ghost:hover{background:var(--paper-2);}
+  .btn-danger{background:var(--red-soft);color:var(--red);}
+  .btn-sm{padding:6px 11px;font-size:12.5px;border-radius:5px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+
+  input[type=text],input[type=number],input[type=date],input[type=password],input[type=tel],select,textarea{
+    width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--navy-2);outline-offset:1px;}
+  label.field-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);display:block;margin-bottom:4px;}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;font-size:11.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
+
+  .stamp{
+    display:inline-flex;align-items:center;justify-content:center;
+    border:2px solid currentColor;border-radius:8px;
+    padding:4px 12px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:11px;
+    letter-spacing:.08em;text-transform:uppercase;transform:rotate(-3deg);
+  }
+
+  .remito{position:relative;}
+  .remito .perforation{
+    border-top:2px dashed var(--line);position:relative;margin:14px 0;
+  }
+  .remito .perforation::before,.remito .perforation::after{
+    content:'';position:absolute;top:-7px;width:14px;height:14px;border-radius:50%;background:var(--paper);
+  }
+  .remito .perforation::before{left:-22px;}
+  .remito .perforation::after{right:-22px;}
+
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:7px;color:#C7CEDC;font-weight:600;font-size:13.5px;cursor:pointer;}
+  .nav-item:hover{background:rgba(255,255,255,.06);}
+  .nav-item.active{background:rgba(255,255,255,.12);color:#fff;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);padding:8px 10px;border-bottom:1px solid var(--line);}
+  td{padding:9px 10px;border-bottom:1px solid var(--paper-2);vertical-align:middle;}
+  tr:hover td{background:var(--paper-2);}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(20,33,61,.45);display:flex;align-items:flex-start;justify-content:center;padding:30px 14px;overflow-y:auto;z-index:50;}
+  .modal-box{background:var(--paper);border-radius:12px;max-width:640px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25);}
+
+  @media print{
+    body *{visibility:hidden;}
+    #print-area, #print-area *{visibility:visible;}
+    #print-area{position:absolute;top:0;left:0;width:100%;}
+    #print-multi-area, #print-multi-area *{visibility:visible;}
+    #print-multi-area{position:absolute;top:0;left:0;width:100%;display:block !important;}
+  }
+  .comanda-print{border:1px solid #999;border-radius:8px;padding:16px 18px;margin-bottom:16px;page-break-inside:avoid;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* ============================= ESTADO Y PERSISTENCIA ============================= */
+const DEFAULT_DB = () => ({
+  config: { adminEmail: "gestionmarqueza@gmail.com", adminPassword: "", adminPasswordEnabled: false },
+  products: [],
+  clients: [],
+  orders: [],
+  stockmoves: []
+});
+
+let DB = DEFAULT_DB();
+let LOADED = false;
+let SAVING = false;
+
+const state = {
+  role: null,           // 'admin' | 'operario' | null
+  loginError: "",
+  view: "dashboard",     // vista actual
+  modal: null,           // {type, payload}
+  filters: { orderStatus: "todos", productSearch: "" },
+  toast: null
+};
+
+async function storageGet(key){
+  try{
+    const r = await window.storage.get(key, true);
+    return r ? JSON.parse(r.value) : null;
+  }catch(e){ return null; }
+}
+async function storageSet(key, value){
+  try{
+    const r = await window.storage.set(key, JSON.stringify(value), true);
+    return !!r;
+  }catch(e){ return false; }
+}
+
+async function loadAll(){
+  const keys = ["config","products","clients","orders","stockmoves"];
+  const results = await Promise.all(keys.map(k => storageGet(k)));
+  keys.forEach((k,i) => { if(results[i] !== null) DB[k] = results[i]; });
+  DB.config = Object.assign({}, DEFAULT_DB().config, DB.config);
+  LOADED = true;
+  render();
+}
+
+async function persist(key){
+  SAVING = true; render();
+  const ok = await storageSet(key, DB[key]);
+  SAVING = false; render();
+  if(!ok) showToast("No se pudo guardar en la base de datos compartida. Revisá tu conexión y volvé a intentar.","error");
+  return ok;
+}
+
+function showToast(msg, kind="ok"){
+  state.toast = {msg, kind};
+  render();
+  setTimeout(()=>{ state.toast = null; render(); }, 2600);
+}
+
+/* ============================= HELPERS ============================= */
+function uid(prefix){ return prefix + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function fmtDate(iso){ if(!iso) return "—"; const [y,m,d] = iso.split("-"); return `${d}/${m}/${y}`; }
+function fmtMoney(n){ return "$" + Number(n||0).toLocaleString("es-AR",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function nextOrderCode(){
+  const n = DB.orders.length + 1;
+  return "P-" + String(n).padStart(4,"0");
+}
+function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+const STATUS_META = {
+  pendiente:       { label:"Pendiente",        color:"#5B6472", bg:"#E7E5DE" },
+  en_preparacion:  { label:"En preparación",   color:"#1D4E89", bg:"#DCE7F5" },
+  listo:           { label:"Listo",            color:"#1E7A63", bg:"#E4F1EC" },
+  en_reparto:      { label:"En reparto",       color:"#C07A2A", bg:"#F6E9D6" },
+  entregado:       { label:"Entregado",        color:"#8C4FB0", bg:"#EEE3F5" },
+  rendido:         { label:"Rendido",          color:"#14213D", bg:"#E1E4EC" },
+};
+
+function badge(status){
+  const m = STATUS_META[status] || STATUS_META.pendiente;
+  return `<span class="badge" style="background:${m.bg};color:${m.color}">${m.label}</span>`;
+}
+
+function productById(id){ return DB.products.find(p=>p.id===id); }
+function clientById(id){ return DB.clients.find(c=>c.id===id); }
+
+function orderTotal(order){
+  return order.items.reduce((s,it)=> s + (Number(it.cantidad)*Number(it.precioUnitario)), 0);
+}
+
+function lowStockProducts(){ return DB.products.filter(p => Number(p.stock) <= Number(p.stockMinimo ?? 5)); }
+
+/* ============================= ACCIONES DE DATOS ============================= */
+async function addStockMove({productId, tipo, cantidad, motivo, ordenId}){
+  const prod = productById(productId);
+  if(!prod) return;
+  const cant = Number(cantidad);
+  prod.stock = tipo === "entrada" ? Number(prod.stock)+cant : Number(prod.stock)-cant;
+  DB.stockmoves.unshift({
+    id: uid("mov"), productId, productoNombre: prod.nombre, tipo, cantidad: cant,
+    motivo: motivo||"", ordenId: ordenId||null, fecha: new Date().toISOString()
+  });
+  await persist("products");
+  await persist("stockmoves");
+}
+
+async function saveOrder(order){
+  const idx = DB.orders.findIndex(o=>o.id===order.id);
+  if(idx>=0) DB.orders[idx] = order; else DB.orders.push(order);
+  await persist("orders");
+}
+
+async function transitionOrder(order, newStatus, extra={}){
+  Object.assign(order, extra, {estado:newStatus});
+  if(newStatus === "listo" && !order._stockDescontado){
+    for(const it of order.items){
+      await addStockMove({productId:it.productId, tipo:"salida", cantidad:it.cantidad, motivo:`Preparación pedido ${order.codigo}`, ordenId:order.id});
+    }
+    order._stockDescontado = true;
+  }
+  await saveOrder(order);
+  showToast(`Pedido ${order.codigo} → ${STATUS_META[newStatus].label}`);
+}
+
+/* ============================= RENDER RAÍZ ============================= */
+function render(){
+  const root = document.getElementById("root");
+  if(!LOADED){
+    root.innerHTML = renderLoading();
+    return;
+  }
+  if(!state.role){
+    root.innerHTML = renderLogin();
+    bindLogin();
+    return;
+  }
+  root.innerHTML = renderShell();
+  bindShell();
+}
+
+function renderLoading(){
+  return `
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;color:var(--ink-soft)">
+    <div class="font-display" style="font-size:22px;color:var(--navy)">Marqueza SRL</div>
+    <div class="font-mono" style="font-size:12.5px;letter-spacing:.05em">Cargando datos del sistema…</div>
+  </div>`;
+}
+
+/* ============================= LOGIN ============================= */
+function renderLogin(){
+  return `
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:
+    radial-gradient(circle at 15% 10%, #1D3059 0%, #14213D 45%, #101a30 100%);padding:20px;">
+    <div class="card" style="width:100%;max-width:400px;padding:32px 30px;border-radius:14px;">
+      <div style="text-align:center;margin-bottom:22px;">
+        <div class="stamp" style="color:var(--teal);margin-bottom:14px;">Sistema interno</div>
+        <div class="font-display" style="font-size:28px;font-weight:700;color:var(--navy);">Marqueza SRL</div>
+        <div style="color:var(--ink-soft);font-size:13.5px;margin-top:2px;">Gestión de pedidos, stock y reparto</div>
+        <div class="font-mono" style="color:var(--ink-soft);font-size:11px;margin-top:6px;">${escapeHtml(DB.config.adminEmail||"")}</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:${state.loginMode==='admin'?'14px':'0'}">
+        <button class="btn btn-primary" style="justify-content:center;" id="btn-mode-admin">Ingresar como Administración</button>
+        <button class="btn btn-ghost" style="justify-content:center;" id="btn-mode-operario">Ingresar como Operario</button>
+      </div>
+
+      ${state.loginMode==='admin' ? `
+        <form id="form-admin-login" style="margin-top:16px;display:flex;flex-direction:column;gap:10px;">
+          ${DB.config.adminPasswordEnabled ? `
+          <div>
+            <label class="field-label">Email de la cuenta</label>
+            <input type="text" id="input-admin-email" placeholder="gestionmarqueza@gmail.com" autocapitalize="off" autocorrect="off" autocomplete="off" value="${escapeHtml(DB.config.adminEmail||"")}">
+          </div>` : ""}
+          <div>
+            <label class="field-label">Clave de administrador</label>
+            <div style="display:flex;gap:6px;">
+              <input type="${state.showPass?'text':'password'}" id="input-admin-pass" autofocus placeholder="••••••••"
+                autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
+                style="flex:1;" value="${escapeHtml(state.loginAttempt||'')}">
+              <button type="button" class="btn btn-ghost btn-sm" id="btn-toggle-pass">${state.showPass?'Ocultar':'Ver'}</button>
+            </div>
+          </div>
+          ${state.loginError ? `<div style="color:var(--red);font-size:13px;">${escapeHtml(state.loginError)}</div>` : ""}
+          <button class="btn btn-accent" style="justify-content:center;" type="submit">Ingresar</button>
+        </form>
+      ` : ""}
+
+      <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-soft);text-align:center;">
+        Por ahora el ingreso como Administración es libre (sin clave). Podés activar una clave desde Ajustes cuando quieras.<br>
+        El perfil Operario tampoco requiere clave: solo muestra fechas y cantidades de producción, sin costos ni datos de clientes.
+      </div>
+    </div>
+  </div>`;
+}
+
+function bindLogin(){
+  const bAdmin = document.getElementById("btn-mode-admin");
+  const bOper = document.getElementById("btn-mode-operario");
+  if(bAdmin) bAdmin.onclick = () => {
+    if(!DB.config.adminPasswordEnabled){
+      state.role = 'admin'; state.view='dashboard'; render();
+      return;
+    }
+    state.loginMode = state.loginMode==='admin' ? null : 'admin'; state.loginError=""; render();
+  };
+  if(bOper) bOper.onclick = () => { state.role = 'operario'; state.view='produccion'; render(); };
+  const toggle = document.getElementById("btn-toggle-pass");
+  if(toggle) toggle.onclick = () => { state.showPass = !state.showPass; state.loginAttempt = document.getElementById("input-admin-pass").value; render(); };
+  const form = document.getElementById("form-admin-login");
+  if(form) form.onsubmit = (e) => {
+    e.preventDefault();
+    const val = document.getElementById("input-admin-pass").value.trim();
+    const emailInput = document.getElementById("input-admin-email");
+    const emailVal = emailInput ? emailInput.value.trim().toLowerCase() : "";
+    const passOk = !DB.config.adminPasswordEnabled || val === String(DB.config.adminPassword).trim();
+    const emailOk = !DB.config.adminPasswordEnabled || emailVal === String(DB.config.adminEmail||"").trim().toLowerCase();
+    if(passOk && emailOk){
+      state.role = 'admin'; state.view='dashboard'; state.loginError=""; state.loginAttempt=""; render();
+    } else {
+      state.loginError = "Clave incorrecta. Intente nuevamente.";
+      state.loginAttempt = val;
+      render();
+    }
+  };
+}
+
+/* ============================= SHELL (NAV + VISTA) ============================= */
+const ADMIN_NAV = [
+  {id:"dashboard", label:"Resumen", icon:"◆"},
+  {id:"pedidos", label:"Pedidos", icon:"▤"},
+  {id:"reparto", label:"Reparto", icon:"▶"},
+  {id:"caja", label:"Caja", icon:"$"},
+  {id:"productos", label:"Productos y stock", icon:"▦"},
+  {id:"clientes", label:"Clientes", icon:"◍"},
+  {id:"reportes", label:"Reportes", icon:"▥"},
+  {id:"ajustes", label:"Ajustes", icon:"⚙"},
+];
+
+function renderShell(){
+  const isAdmin = state.role === 'admin';
+  const nav = isAdmin ? ADMIN_NAV : [{id:"produccion", label:"Producción", icon:"▤"}];
+  return `
+  <div style="display:flex;min-height:100vh;">
+    <div style="width:220px;background:var(--navy);flex-shrink:0;padding:18px 12px;display:flex;flex-direction:column;">
+      <div style="padding:6px 10px 18px 10px;">
+        <div class="font-display" style="color:#fff;font-size:19px;font-weight:700;">Marqueza SRL</div>
+        <div class="font-mono" style="color:#8B93A7;font-size:10.5px;letter-spacing:.05em;margin-top:2px;">
+          ${isAdmin ? "PANEL ADMINISTRACIÓN" : "PANEL PRODUCCIÓN"}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
+        ${nav.map(n => `<div class="nav-item ${state.view===n.id?'active':''}" data-nav="${n.id}"><span>${n.icon}</span>${n.label}</div>`).join("")}
+      </div>
+      <div class="nav-item" id="btn-logout" style="color:#E4B0A5;">⏻ Cerrar sesión</div>
+    </div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+      <div style="padding:14px 26px;border-bottom:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:space-between;">
+        <div class="font-display" style="font-size:19px;font-weight:600;color:var(--navy);">${viewTitle()}</div>
+        <div style="font-size:12px;color:var(--ink-soft);" class="font-mono">${SAVING ? "Guardando…" : "Sincronizado"}</div>
+      </div>
+      <div style="padding:22px 26px;flex:1;overflow-y:auto;">
+        ${renderView()}
+      </div>
+    </div>
+  </div>
+  ${state.modal ? renderModal() : ""}
+  ${state.toast ? renderToast() : ""}
+  `;
+}
+
+function viewTitle(){
+  const titles = {
+    dashboard:"Resumen general", pedidos:"Pedidos y presupuestos", reparto:"Reparto",
+    caja:"Rendición de caja", productos:"Productos y stock", clientes:"Clientes",
+    reportes:"Reportes", ajustes:"Ajustes", produccion:"Órdenes de producción"
+  };
+  return titles[state.view] || "";
+}
+
+function renderToast(){
+  const kind = state.toast.kind;
+  const bg = kind==="error" ? "var(--red)" : "var(--teal)";
+  return `<div style="position:fixed;bottom:20px;right:20px;background:${bg};color:#fff;padding:11px 18px;border-radius:8px;font-size:13.5px;font-weight:600;box-shadow:0 8px 20px rgba(0,0,0,.2);z-index:60;">${escapeHtml(state.toast.msg)}</div>`;
+}
+
+function renderView(){
+  switch(state.view){
+    case "dashboard": return renderDashboard();
+    case "pedidos": return renderPedidos();
+    case "reparto": return renderReparto();
+    case "caja": return renderCaja();
+    case "productos": return renderProductos();
+    case "clientes": return renderClientes();
+    case "reportes": return renderReportes();
+    case "ajustes": return renderAjustes();
+    case "produccion": return renderProduccion();
+    default: return "";
+  }
+}
+
+function bindShell(){
+  document.querySelectorAll("[data-nav]").forEach(el => {
+    el.onclick = () => { state.view = el.dataset.nav; state.modal=null; render(); };
+  });
+  const logout = document.getElementById("btn-logout");
+  if(logout) logout.onclick = () => { state.role=null; state.loginMode=null; render(); };
+  bindView();
+}
+
+function bindView(){
+  const fns = {
+    dashboard: bindDashboard, pedidos: bindPedidos, reparto: bindReparto, caja: bindCaja,
+    productos: bindProductos, clientes: bindClientes, reportes: bindReportes, ajustes: bindAjustes,
+    produccion: bindProduccion
+  };
+  if(fns[state.view]) fns[state.view]();
+  if(state.modal) bindModal();
+}
+
+/* ============================= DASHBOARD ============================= */
+function renderDashboard(){
+  const counts = {
+    pendiente: DB.orders.filter(o=>o.estado==='pendiente').length,
+    en_preparacion: DB.orders.filter(o=>o.estado==='en_preparacion').length,
+    listo: DB.orders.filter(o=>o.estado==='listo').length,
+    en_reparto: DB.orders.filter(o=>o.estado==='en_reparto').length,
+    entregado: DB.orders.filter(o=>o.estado==='entregado').length,
+  };
+  const low = lowStockProducts();
+  const cards = [
+    {label:"Pendientes", val:counts.pendiente, color:STATUS_META.pendiente},
+    {label:"En preparación", val:counts.en_preparacion, color:STATUS_META.en_preparacion},
+    {label:"Listos para reparto", val:counts.listo, color:STATUS_META.listo},
+    {label:"En reparto", val:counts.en_reparto, color:STATUS_META.en_reparto},
+    {label:"Entregados (falta rendir)", val:counts.entregado, color:STATUS_META.entregado},
+  ];
+  return `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">${exportToolbar("exp-dash")}</div>
+  <div id="export-dashboard">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:24px;">
+    ${cards.map(c => `
+      <div class="card" style="padding:16px;">
+        <div style="font-size:12px;color:var(--ink-soft);font-weight:600;margin-bottom:6px;">${c.label}</div>
+        <div class="font-display" style="font-size:32px;font-weight:700;color:${c.color.color}">${c.val}</div>
+      </div>`).join("")}
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:18px;">
+    <div class="card" style="padding:18px;">
+      <div style="font-weight:700;margin-bottom:10px;">Últimos pedidos</div>
+      ${DB.orders.length===0 ? emptyState("Todavía no cargaste pedidos. Creá el primero desde “Pedidos”.") : `
+      <table>
+        <thead><tr><th>Código</th><th>Cliente</th><th>Entrega</th><th>Total</th><th>Estado</th></tr></thead>
+        <tbody>
+        ${[...DB.orders].reverse().slice(0,6).map(o => `
+          <tr><td class="font-mono">${o.codigo}</td><td>${escapeHtml(clientById(o.clienteId)?.nombre||"—")}</td>
+          <td>${fmtDate(o.fechaEntrega)}</td><td>${fmtMoney(orderTotal(o))}</td><td>${badge(o.estado)}</td></tr>
+        `).join("")}
+        </tbody>
+      </table>`}
+    </div>
+    <div class="card" style="padding:18px;">
+      <div style="font-weight:700;margin-bottom:10px;">Stock bajo</div>
+      ${low.length===0 ? `<div style="color:var(--ink-soft);font-size:13.5px;">Ningún producto está por debajo del mínimo.</div>` : `
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${low.map(p => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--red-soft);border-radius:7px;">
+            <span style="font-size:13.5px;font-weight:600;">${escapeHtml(p.nombre)}</span>
+            <span class="font-mono" style="font-size:12.5px;color:var(--red);">${p.stock} ${p.unidad}</span>
+          </div>`).join("")}
+      </div>`}
+    </div>
+  </div>
+  </div>`;
+}
+function bindDashboard(){
+  bindExportToolbar("exp-dash", () => {
+    const wb = XLSX.utils.book_new();
+    const estados = ["pendiente","en_preparacion","listo","en_reparto","entregado","rendido"];
+    const resumenRows = estados.map(e => ({ Estado: STATUS_META[e].label, Cantidad: DB.orders.filter(o=>o.estado===e).length }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumenRows), "Resumen");
+    const pedidosRows = DB.orders.map(o => ({
+      Código:o.codigo, Cliente: clientById(o.clienteId)?.nombre||"", "Fecha Entrega": fmtDate(o.fechaEntrega),
+      Total: orderTotal(o), Estado: STATUS_META[o.estado].label
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pedidosRows), "Pedidos");
+    const stockRows = lowStockProducts().map(p => ({ Producto:p.nombre, Stock:p.stock, "Stock Mínimo":p.stockMinimo??5 }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockRows), "Stock bajo");
+    XLSX.writeFile(wb, "resumen_marqueza.xlsx");
+  }, "export-dashboard", "resumen_marqueza.png");
+}
+
+function emptyState(msg){
+  return `<div style="padding:26px 10px;text-align:center;color:var(--ink-soft);font-size:13.5px;">${msg}</div>`;
+}
+
+/* ============================= PRODUCCIÓN (OPERARIO) ============================= */
+function renderProduccion(){
+  const relevant = DB.orders.filter(o => ["pendiente","en_preparacion","listo"].includes(o.estado));
+  state.selectedProd = state.selectedProd || [];
+  return `
+  <div style="max-width:820px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div style="color:var(--ink-soft);font-size:13.5px;">
+        Solo se muestran fechas y productos a preparar. No hay datos de clientes ni precios.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" id="prod-select-all">Seleccionar todos</button>
+        <button class="btn btn-amber btn-sm" id="prod-print-selected" ${state.selectedProd.length===0?'disabled':''}>🖶 Imprimir seleccionados (${state.selectedProd.length})</button>
+        ${exportToolbar("exp-prod-op")}
+      </div>
+    </div>
+    <div id="export-produccion">
+    ${relevant.length===0 ? emptyState("No hay órdenes de producción pendientes por el momento.") : relevant.map(o => `
+      <div class="card remito" style="padding:18px 20px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <input type="checkbox" data-prod-check="${o.id}" ${state.selectedProd.includes(o.id)?'checked':''} style="margin-top:4px;width:16px;height:16px;">
+            <div>
+              <div class="font-mono" style="font-size:12px;color:var(--ink-soft);">ORDEN ${o.codigo}</div>
+              <div style="display:flex;gap:18px;margin-top:6px;">
+                <div><div class="field-label" style="margin-bottom:2px;">Preparar para</div><div style="font-weight:700;">${fmtDate(o.fechaPreparacion)}</div></div>
+                <div><div class="field-label" style="margin-bottom:2px;">Entrega</div><div style="font-weight:700;">${fmtDate(o.fechaEntrega)}</div></div>
+              </div>
+            </div>
+          </div>
+          ${badge(o.estado)}
+        </div>
+        <div class="perforation"></div>
+        <table>
+          <thead><tr><th>Producto</th><th style="text-align:right;">Cantidad</th></tr></thead>
+          <tbody>
+          ${o.items.map(it => `<tr><td>${escapeHtml(productById(it.productId)?.nombre || "(producto eliminado)")}</td><td style="text-align:right;font-weight:700;">${it.cantidad} ${productById(it.productId)?.unidad||""}</td></tr>`).join("")}
+          </tbody>
+        </table>
+        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+          ${o.estado==='pendiente' ? `<button class="btn btn-ghost btn-sm" data-op-start="${o.id}">Empezar preparación</button>`:""}
+          ${o.estado!=='listo' ? `<button class="btn btn-accent btn-sm" data-op-ready="${o.id}">Marcar como listo</button>` : `<span style="color:var(--teal);font-weight:700;font-size:13px;">✓ Listo para reparto</span>`}
+        </div>
+      </div>
+    `).join("")}
+    </div>
+  </div>`;
+}
+
+function comandaPrintBlock(o){
+  return `
+  <div class="comanda-print">
+    <div style="display:flex;justify-content:space-between;">
+      <div style="font-weight:700;font-size:15px;">Orden ${o.codigo}</div>
+      <div style="font-size:12px;">${STATUS_META[o.estado].label}</div>
+    </div>
+    <div style="display:flex;gap:20px;margin:8px 0;font-size:13px;">
+      <div><b>Preparar para:</b> ${fmtDate(o.fechaPreparacion)}</div>
+      <div><b>Entrega:</b> ${fmtDate(o.fechaEntrega)}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr><th style="text-align:left;border-bottom:1px solid #999;padding:4px 0;">Producto</th><th style="text-align:right;border-bottom:1px solid #999;padding:4px 0;">Cantidad</th></tr></thead>
+      <tbody>
+      ${o.items.map(it => `<tr><td style="padding:3px 0;">${escapeHtml(productById(it.productId)?.nombre||"(producto eliminado)")}</td><td style="text-align:right;padding:3px 0;">${it.cantidad} ${escapeHtml(productById(it.productId)?.unidad||"")}</td></tr>`).join("")}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function printSelectedComandas(ids){
+  if(ids.length===0) return;
+  let container = document.getElementById("print-multi-area");
+  if(!container){
+    container = document.createElement("div");
+    container.id = "print-multi-area";
+    container.style.display = "none";
+    document.body.appendChild(container);
+  }
+  const orders = ids.map(id => DB.orders.find(o=>o.id===id)).filter(Boolean);
+  container.innerHTML = `<div style="font-family:Arial;padding:10px;">
+    <div style="font-weight:700;font-size:16px;margin-bottom:10px;">Marqueza SRL — Comandas de producción</div>
+    ${orders.map(comandaPrintBlock).join("")}
+  </div>`;
+  window.print();
+}
+
+function bindProduccion(){
+  document.querySelectorAll("[data-op-start]").forEach(b => b.onclick = async () => {
+    const o = DB.orders.find(x=>x.id===b.dataset.opStart);
+    await transitionOrder(o, "en_preparacion");
+  });
+  document.querySelectorAll("[data-op-ready]").forEach(b => b.onclick = async () => {
+    const o = DB.orders.find(x=>x.id===b.dataset.opReady);
+    await transitionOrder(o, "listo");
+  });
+  document.querySelectorAll("[data-prod-check]").forEach(cb => cb.onchange = () => {
+    state.selectedProd = state.selectedProd || [];
+    const id = cb.dataset.prodCheck;
+    if(cb.checked){ if(!state.selectedProd.includes(id)) state.selectedProd.push(id); }
+    else { state.selectedProd = state.selectedProd.filter(x=>x!==id); }
+    render();
+  });
+  const selAll = document.getElementById("prod-select-all");
+  if(selAll) selAll.onclick = () => {
+    const relevant = DB.orders.filter(o => ["pendiente","en_preparacion","listo"].includes(o.estado));
+    const allSelected = relevant.length>0 && relevant.every(o => (state.selectedProd||[]).includes(o.id));
+    state.selectedProd = allSelected ? [] : relevant.map(o=>o.id);
+    render();
+  };
+  const printBtn = document.getElementById("prod-print-selected");
+  if(printBtn) printBtn.onclick = () => printSelectedComandas(state.selectedProd||[]);
+  bindExportToolbar("exp-prod-op", () => {
+    const relevant = DB.orders.filter(o => ["pendiente","en_preparacion","listo"].includes(o.estado));
+    const rows = [];
+    relevant.forEach(o => o.items.forEach(it => {
+      rows.push({
+        Código:o.codigo, "Fecha Preparación": fmtDate(o.fechaPreparacion), "Fecha Entrega": fmtDate(o.fechaEntrega),
+        Producto: productById(it.productId)?.nombre||"", Cantidad: it.cantidad, Estado: STATUS_META[o.estado].label
+      });
+    }));
+    exportRowsToExcel("produccion_marqueza.xlsx","Producción",rows);
+  }, "export-produccion", "produccion_marqueza.png");
+}
+
+/* ============================= PEDIDOS (ADMIN) ============================= */
+function renderPedidos(){
+  const f = state.filters.orderStatus;
+  const list = DB.orders.filter(o => f==='todos' ? true : o.estado===f).slice().reverse();
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <select id="filter-order-status" style="max-width:220px;">
+      ${["todos",...Object.keys(STATUS_META)].map(s => `<option value="${s}" ${f===s?'selected':''}>${s==='todos'?'Todos los estados':STATUS_META[s].label}</option>`).join("")}
+    </select>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${exportToolbar("exp-ped")}
+      <button class="btn btn-primary" id="btn-new-order">+ Nuevo pedido</button>
+    </div>
+  </div>
+  <div id="export-pedidos">
+  ${list.length===0 ? emptyState("No hay pedidos con ese filtro.") : `
+  <div class="card">
+    <table>
+      <thead><tr><th>Código</th><th>Cliente</th><th>Pedido</th><th>Entrega</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+      ${list.map(o => `
+        <tr>
+          <td class="font-mono">${o.codigo}</td>
+          <td>${escapeHtml(clientById(o.clienteId)?.nombre || "—")}</td>
+          <td>${fmtDate(o.fechaPedido)}</td>
+          <td>${fmtDate(o.fechaEntrega)}</td>
+          <td>${fmtMoney(orderTotal(o))}</td>
+          <td>${badge(o.estado)}</td>
+          <td style="text-align:right;"><button class="btn btn-ghost btn-sm" data-view-order="${o.id}">Ver / Imprimir</button></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>`}
+  </div>
+  `;
+}
+function bindPedidos(){
+  const sel = document.getElementById("filter-order-status");
+  if(sel) sel.onchange = () => { state.filters.orderStatus = sel.value; render(); };
+  const btn = document.getElementById("btn-new-order");
+  if(btn) btn.onclick = () => { state.modal = {type:"new-order", items:[], clienteId:null}; render(); };
+  document.querySelectorAll("[data-view-order]").forEach(b => b.onclick = () => {
+    state.modal = {type:"view-order", orderId:b.dataset.viewOrder};
+    render();
+  });
+  bindExportToolbar("exp-ped", () => {
+    const f = state.filters.orderStatus;
+    const list = DB.orders.filter(o => f==='todos' ? true : o.estado===f);
+    const rows = list.map(o => ({
+      Código:o.codigo, Cliente: clientById(o.clienteId)?.nombre||"", "Fecha Pedido":fmtDate(o.fechaPedido),
+      "Fecha Entrega":fmtDate(o.fechaEntrega), Total: orderTotal(o), Estado: STATUS_META[o.estado].label,
+      Repartidor: o.repartidor||""
+    }));
+    exportRowsToExcel("pedidos_marqueza.xlsx","Pedidos",rows);
+  }, "export-pedidos", "pedidos_marqueza.png");
+}
+
+/* ---- Modal: nuevo pedido ---- */
+function renderNewOrderModal(m){
+  const cli = m.clienteId ? clientById(m.clienteId) : null;
+  const total = m.items.reduce((s,it)=> s+ Number(it.cantidad)*Number(it.precioUnitario),0);
+  return `
+  <div class="modal-box" style="padding:24px;">
+    <div style="font-weight:700;font-size:17px;margin-bottom:14px;">Nuevo pedido / presupuesto</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div>
+        <label class="field-label">Cliente</label>
+        <select id="no-cliente">
+          <option value="">— Seleccionar —</option>
+          ${DB.clients.map(c => `<option value="${c.id}" ${m.clienteId===c.id?'selected':''}>${escapeHtml(c.nombre)}</option>`).join("")}
+          <option value="__new__">+ Cargar cliente nuevo</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Ubicación de entrega</label>
+        <input type="text" id="no-ubicacion" placeholder="Dirección o link de ubicación de WhatsApp" value="${escapeHtml(m.ubicacion || (cli?cli.direccion:'') || '')}">
+      </div>
+    </div>
+
+    ${m.clienteId==='__new__' ? `
+    <div class="card" style="padding:12px;margin-bottom:12px;background:var(--paper-2);">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label class="field-label">Nombre del cliente</label><input type="text" id="nc-nombre" value="${escapeHtml(m.newClient?.nombre||'')}"></div>
+        <div><label class="field-label">Teléfono</label><input type="text" id="nc-telefono" value="${escapeHtml(m.newClient?.telefono||'')}"></div>
+      </div>
+    </div>` : ""}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div><label class="field-label">Fecha de pedido</label><input type="date" id="no-fecha-pedido" value="${m.fechaPedido||todayISO()}"></div>
+      <div><label class="field-label">Fecha de preparación</label><input type="date" id="no-fecha-prep" value="${m.fechaPreparacion||todayISO()}"></div>
+      <div><label class="field-label">Fecha de entrega</label><input type="date" id="no-fecha-entrega" value="${m.fechaEntrega||''}"></div>
+    </div>
+
+    <div style="font-weight:700;margin-bottom:8px;">Productos</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <select id="no-add-product" style="flex:2;">
+        <option value="">Elegir producto…</option>
+        ${DB.products.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)} — ${fmtMoney(p.precio)} (stock ${p.stock})</option>`).join("")}
+      </select>
+      <input type="number" id="no-add-qty" placeholder="Cant." min="1" value="1" style="flex:1;">
+      <button class="btn btn-ghost btn-sm" id="no-add-btn">Agregar</button>
+    </div>
+
+    ${m.items.length===0 ? `<div style="color:var(--ink-soft);font-size:13px;margin-bottom:10px;">Todavía no agregaste productos.</div>` : `
+    <table style="margin-bottom:10px;">
+      <thead><tr><th>Producto</th><th>Cant.</th><th>Precio unit.</th><th>Subtotal</th><th></th></tr></thead>
+      <tbody>
+      ${m.items.map((it,i) => `
+        <tr>
+          <td>${escapeHtml(productById(it.productId)?.nombre)}</td>
+          <td>${it.cantidad}</td>
+          <td>${fmtMoney(it.precioUnitario)}</td>
+          <td>${fmtMoney(it.cantidad*it.precioUnitario)}</td>
+          <td><button class="btn btn-danger btn-sm" data-remove-item="${i}">Quitar</button></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`}
+
+    <div style="text-align:right;font-weight:700;font-size:16px;margin-bottom:16px;">Total: ${fmtMoney(total)}</div>
+
+    <div>
+      <label class="field-label">Observaciones</label>
+      <textarea id="no-obs" rows="2">${escapeHtml(m.observaciones||"")}</textarea>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+      <button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="no-save">Guardar pedido</button>
+    </div>
+  </div>`;
+}
+
+/* ---- Modal: ver / imprimir pedido ---- */
+function renderViewOrderModal(m){
+  const o = DB.orders.find(x=>x.id===m.orderId);
+  const cli = clientById(o.clienteId);
+  const total = orderTotal(o);
+  return `
+  <div class="modal-box" style="padding:0;overflow:hidden;">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-weight:700;font-size:16px;">Pedido ${o.codigo}</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" id="btn-print-order">Imprimir presupuesto</button>
+        <button class="btn btn-ghost btn-sm" id="modal-cancel">Cerrar</button>
+      </div>
+    </div>
+    <div style="padding:22px 24px;" id="print-area">
+      <div class="remito">
+        <div style="display:flex;justify-content:space-between;">
+          <div>
+            <div class="font-display" style="font-size:20px;font-weight:700;">Marqueza SRL</div>
+            <div class="font-mono" style="font-size:12px;color:var(--ink-soft);">Presupuesto ${o.codigo}</div>
+          </div>
+          ${badge(o.estado)}
+        </div>
+        <div class="perforation"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13.5px;margin-bottom:6px;">
+          <div><b>Cliente:</b> ${escapeHtml(cli?.nombre||"—")}</div>
+          <div><b>Teléfono:</b> ${escapeHtml(cli?.telefono||"—")}</div>
+          <div><b>Ubicación de entrega:</b> ${escapeHtml(o.ubicacion||"—")}</div>
+          <div><b>Repartidor:</b> ${escapeHtml(o.repartidor||"—")}</div>
+          <div><b>Fecha de pedido:</b> ${fmtDate(o.fechaPedido)}</div>
+          <div><b>Fecha de entrega:</b> ${fmtDate(o.fechaEntrega)}</div>
+        </div>
+        <table style="margin-top:10px;">
+          <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead>
+          <tbody>
+          ${o.items.map(it => `<tr><td>${escapeHtml(productById(it.productId)?.nombre)}</td><td>${it.cantidad}</td><td>${fmtMoney(it.precioUnitario)}</td><td>${fmtMoney(it.cantidad*it.precioUnitario)}</td></tr>`).join("")}
+          </tbody>
+        </table>
+        <div style="text-align:right;font-weight:700;font-size:17px;margin-top:10px;">Total: ${fmtMoney(total)}</div>
+        ${o.observaciones ? `<div style="margin-top:8px;font-size:13px;color:var(--ink-soft);"><b>Obs:</b> ${escapeHtml(o.observaciones)}</div>` : ""}
+        ${o.estado==='rendido' ? `<div style="margin-top:14px;" class="stamp" style="color:var(--navy)">Rendido — ${fmtMoney(o.montoRendido)}</div>` : ""}
+      </div>
+    </div>
+    ${o.estado==='pendiente' ? `
+    <div style="padding:14px 24px;border-top:1px solid var(--line);text-align:right;">
+      <button class="btn btn-danger btn-sm" id="btn-cancel-order">Cancelar pedido</button>
+    </div>` : ""}
+  </div>`;
+}
+
+/* ============================= REPARTO ============================= */
+function renderReparto(){
+  const listos = DB.orders.filter(o=>o.estado==='listo');
+  const enReparto = DB.orders.filter(o=>o.estado==='en_reparto');
+  return `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+    <div>
+      <div style="font-weight:700;margin-bottom:10px;">Listos para asignar repartidor</div>
+      ${listos.length===0 ? emptyState("No hay pedidos listos en este momento.") : listos.map(o => `
+        <div class="card" style="padding:14px 16px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;"><b>${o.codigo}</b>${badge(o.estado)}</div>
+          <div style="font-size:13.5px;margin:6px 0;color:var(--ink-soft);">${escapeHtml(clientById(o.clienteId)?.nombre)} · ${fmtMoney(orderTotal(o))}</div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" placeholder="Nombre del repartidor" id="rep-input-${o.id}" style="flex:1;">
+            <button class="btn btn-amber btn-sm" data-assign="${o.id}">Asignar</button>
+          </div>
+        </div>`).join("")}
+    </div>
+    <div>
+      <div style="font-weight:700;margin-bottom:10px;">En reparto</div>
+      ${enReparto.length===0 ? emptyState("Nadie está en reparto en este momento.") : enReparto.map(o => `
+        <div class="card" style="padding:14px 16px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;"><b>${o.codigo}</b>${badge(o.estado)}</div>
+          <div style="font-size:13.5px;margin:6px 0;color:var(--ink-soft);">${escapeHtml(clientById(o.clienteId)?.nombre)} · Repartidor: ${escapeHtml(o.repartidor)}</div>
+          <button class="btn btn-accent btn-sm" data-delivered="${o.id}">Marcar entregado</button>
+        </div>`).join("")}
+    </div>
+  </div>`;
+}
+function bindReparto(){
+  document.querySelectorAll("[data-assign]").forEach(b => b.onclick = async () => {
+    const id = b.dataset.assign;
+    const input = document.getElementById("rep-input-"+id);
+    if(!input.value.trim()){ showToast("Ingresá el nombre del repartidor","error"); return; }
+    const o = DB.orders.find(x=>x.id===id);
+    await transitionOrder(o, "en_reparto", {repartidor: input.value.trim()});
+  });
+  document.querySelectorAll("[data-delivered]").forEach(b => b.onclick = async () => {
+    const o = DB.orders.find(x=>x.id===b.dataset.delivered);
+    await transitionOrder(o, "entregado");
+  });
+}
+
+/* ============================= CAJA ============================= */
+function renderCaja(){
+  const pend = DB.orders.filter(o=>o.estado==='entregado');
+  return `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">${exportToolbar("exp-caja")}</div>
+  <div id="export-caja">
+  ${pend.length===0 ? emptyState("No hay entregas pendientes de rendir.") : pend.map(o => {
+    const total = orderTotal(o);
+    return `
+    <div class="card" style="padding:16px 18px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <b>${o.codigo}</b> — ${escapeHtml(clientById(o.clienteId)?.nombre)}
+          <div style="font-size:12.5px;color:var(--ink-soft);">Repartidor: ${escapeHtml(o.repartidor||"—")} · Total presupuesto: ${fmtMoney(total)}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" placeholder="Monto rendido" id="caja-input-${o.id}" style="width:150px;">
+          <button class="btn btn-accent btn-sm" data-validar="${o.id}">Validar y rendir</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("")}
+  </div>`;
+}
+function bindCaja(){
+  document.querySelectorAll("[data-validar]").forEach(b => b.onclick = async () => {
+    const id = b.dataset.validar;
+    const input = document.getElementById("caja-input-"+id);
+    const monto = Number(input.value);
+    if(!input.value || isNaN(monto)){ showToast("Ingresá el monto rendido","error"); return; }
+    const o = DB.orders.find(x=>x.id===id);
+    const total = orderTotal(o);
+    const diff = Math.round((monto-total)*100)/100;
+    if(diff !== 0){
+      const ok = confirm(`El monto rendido (${fmtMoney(monto)}) no coincide con el presupuesto (${fmtMoney(total)}). Diferencia: ${fmtMoney(diff)}.\n¿Confirmar de todas formas?`);
+      if(!ok) return;
+    }
+    await transitionOrder(o, "rendido", {montoRendido: monto, fechaRendicion: new Date().toISOString(), diferenciaCaja: diff});
+  });
+  bindExportToolbar("exp-caja", () => {
+    const pend = DB.orders.filter(o=>o.estado==='entregado');
+    const rows = pend.map(o => ({
+      Código:o.codigo, Cliente: clientById(o.clienteId)?.nombre||"", Repartidor: o.repartidor||"",
+      "Total Presupuesto": orderTotal(o)
+    }));
+    exportRowsToExcel("caja_pendiente_marqueza.xlsx","Caja",rows);
+  }, "export-caja", "caja_marqueza.png");
+}
+
+/* ============================= PRODUCTOS ============================= */
+function renderProductos(){
+  const q = (state.filters.productSearch||"").toLowerCase();
+  const list = DB.products.filter(p => p.nombre.toLowerCase().includes(q));
+  return `
+  <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <input type="text" placeholder="Buscar producto…" id="prod-search" style="max-width:240px;" value="${escapeHtml(state.filters.productSearch||"")}">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${exportToolbar("exp-prod")}
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+        Importar desde Excel
+        <input type="file" id="prod-import" accept=".xlsx,.xls,.csv" style="display:none;">
+      </label>
+      <button class="btn btn-primary btn-sm" id="btn-new-product">+ Nuevo producto</button>
+    </div>
+  </div>
+  <div id="export-productos">
+  ${list.length===0 ? emptyState("No se encontraron productos. Cargalos manualmente o importá un Excel.") : `
+  <div class="card">
+    <table>
+      <thead><tr><th>Producto</th><th>Precio</th><th>Stock</th><th>Unidad</th><th></th></tr></thead>
+      <tbody>
+      ${list.map(p => `
+        <tr>
+          <td>${escapeHtml(p.nombre)}</td>
+          <td>${fmtMoney(p.precio)}</td>
+          <td style="${Number(p.stock)<=Number(p.stockMinimo??5) ? 'color:var(--red);font-weight:700;' : ''}">${p.stock}</td>
+          <td>${escapeHtml(p.unidad||"unidad")}</td>
+          <td style="text-align:right;display:flex;gap:6px;justify-content:flex-end;">
+            <button class="btn btn-ghost btn-sm" data-move-product="${p.id}">Mov. stock</button>
+            <button class="btn btn-ghost btn-sm" data-edit-product="${p.id}">Editar</button>
+          </td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>`}
+  </div>
+  `;
+}
+function bindProductos(){
+  const s = document.getElementById("prod-search");
+  if(s) s.oninput = () => { state.filters.productSearch = s.value; render(); document.getElementById("prod-search").focus(); document.getElementById("prod-search").selectionStart = document.getElementById("prod-search").value.length; };
+  const btn = document.getElementById("btn-new-product");
+  if(btn) btn.onclick = () => { state.modal = {type:"edit-product", product:null}; render(); };
+  document.querySelectorAll("[data-edit-product]").forEach(b => b.onclick = () => {
+    state.modal = {type:"edit-product", product: productById(b.dataset.editProduct)};
+    render();
+  });
+  document.querySelectorAll("[data-move-product]").forEach(b => b.onclick = () => {
+    state.modal = {type:"stock-move", productId: b.dataset.moveProduct};
+    render();
+  });
+  const imp = document.getElementById("prod-import");
+  if(imp) imp.onchange = handleExcelImport;
+  bindExportToolbar("exp-prod", () => {
+    const q = (state.filters.productSearch||"").toLowerCase();
+    const rows = DB.products.filter(p=>p.nombre.toLowerCase().includes(q)).map(p => ({
+      Producto:p.nombre, Precio:p.precio, Stock:p.stock, Unidad:p.unidad, "Stock Mínimo":p.stockMinimo??5
+    }));
+    exportRowsToExcel("productos_marqueza.xlsx","Productos",rows);
+  }, "export-productos", "productos_marqueza.png");
+}
+
+async function handleExcelImport(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, {type:"array"});
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, {defval:""});
+  if(rows.length===0){ showToast("El archivo no tiene filas de datos","error"); return; }
+
+  const findKey = (row, options) => Object.keys(row).find(k => options.includes(k.toLowerCase().trim()));
+  let added = 0, updated = 0;
+  rows.forEach(row => {
+    const kNombre = findKey(row, ["nombre","producto","descripcion","descripción","articulo","artículo"]);
+    const kPrecio = findKey(row, ["precio","precio unitario","precio venta"]);
+    const kStock = findKey(row, ["stock","cantidad","existencia"]);
+    const kUnidad = findKey(row, ["unidad","um","u.m."]);
+    const nombre = kNombre ? String(row[kNombre]).trim() : "";
+    if(!nombre) return;
+    const precio = kPrecio ? Number(String(row[kPrecio]).replace(",",".")) || 0 : 0;
+    const stock = kStock ? Number(String(row[kStock]).replace(",",".")) || 0 : 0;
+    const unidad = kUnidad ? String(row[kUnidad]).trim() : "unidad";
+    const existing = DB.products.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+    if(existing){
+      existing.precio = precio || existing.precio;
+      existing.stock = stock;
+      existing.unidad = unidad || existing.unidad;
+      updated++;
+    } else {
+      DB.products.push({id:uid("prod"), nombre, precio, stock, unidad, stockMinimo:5});
+      added++;
+    }
+  });
+  await persist("products");
+  showToast(`Importación completa: ${added} nuevos, ${updated} actualizados.`);
+  e.target.value = "";
+}
+
+/* ---- Modal producto ---- */
+function renderEditProductModal(m){
+  const p = m.product;
+  return `
+  <div class="modal-box" style="padding:24px;max-width:420px;">
+    <div style="font-weight:700;font-size:16px;margin-bottom:14px;">${p ? "Editar producto" : "Nuevo producto"}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div><label class="field-label">Nombre</label><input type="text" id="ep-nombre" value="${escapeHtml(p?.nombre||"")}"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label class="field-label">Precio</label><input type="number" id="ep-precio" value="${p?.precio??""}"></div>
+        <div><label class="field-label">Unidad</label><input type="text" id="ep-unidad" placeholder="unidad / kg / caja" value="${escapeHtml(p?.unidad||"unidad")}"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label class="field-label">Stock actual</label><input type="number" id="ep-stock" value="${p?.stock??0}" ${p?'disabled':''}></div>
+        <div><label class="field-label">Stock mínimo (alerta)</label><input type="number" id="ep-min" value="${p?.stockMinimo??5}"></div>
+      </div>
+      ${p ? `<div style="font-size:12px;color:var(--ink-soft);">Para cambiar el stock actual usá "Mov. stock" (entrada/salida), así queda registrado el movimiento.</div>` : ""}
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:18px;">
+      <div>${p ? `<button class="btn btn-danger btn-sm" id="ep-delete">Eliminar producto</button>` : ""}</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+        <button class="btn btn-primary" id="ep-save">Guardar</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderStockMoveModal(m){
+  const p = productById(m.productId);
+  return `
+  <div class="modal-box" style="padding:24px;max-width:380px;">
+    <div style="font-weight:700;font-size:16px;margin-bottom:4px;">Movimiento de stock</div>
+    <div style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;">${escapeHtml(p.nombre)} · stock actual: <b>${p.stock} ${p.unidad}</b></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button class="btn btn-sm ${m.tipo!=='salida'?'btn-accent':'btn-ghost'}" id="sm-entrada" type="button">Entrada</button>
+      <button class="btn btn-sm ${m.tipo==='salida'?'btn-danger':'btn-ghost'}" id="sm-salida" type="button">Salida</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div><label class="field-label">Cantidad</label><input type="number" id="sm-cantidad" min="1" value="1"></div>
+      <div><label class="field-label">Motivo</label><input type="text" id="sm-motivo" placeholder="Ej: compra a proveedor, ajuste de inventario"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+      <button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="sm-save">Registrar</button>
+    </div>
+  </div>`;
+}
+
+/* ============================= CLIENTES ============================= */
+function renderClientes(){
+  return `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:14px;gap:8px;">
+    ${exportToolbar("exp-cli")}
+    <button class="btn btn-primary" id="btn-new-client">+ Nuevo cliente</button>
+  </div>
+  <div id="export-clientes">
+  ${DB.clients.length===0 ? emptyState("No hay clientes cargados todavía.") : `
+  <div class="card">
+    <table>
+      <thead><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th>Pedidos</th><th></th></tr></thead>
+      <tbody>
+      ${DB.clients.map(c => `
+        <tr>
+          <td>${escapeHtml(c.nombre)}</td><td>${escapeHtml(c.telefono||"—")}</td><td>${escapeHtml(c.direccion||"—")}</td>
+          <td>${DB.orders.filter(o=>o.clienteId===c.id).length}</td>
+          <td style="text-align:right;"><button class="btn btn-ghost btn-sm" data-edit-client="${c.id}">Editar</button></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>`}
+  </div>
+  `;
+}
+function bindClientes(){
+  const btn = document.getElementById("btn-new-client");
+  if(btn) btn.onclick = () => { state.modal = {type:"edit-client", client:null}; render(); };
+  document.querySelectorAll("[data-edit-client]").forEach(b => b.onclick = () => {
+    state.modal = {type:"edit-client", client: clientById(b.dataset.editClient)};
+    render();
+  });
+  bindExportToolbar("exp-cli", () => {
+    const rows = DB.clients.map(c => ({
+      Nombre:c.nombre, Teléfono:c.telefono||"", Dirección:c.direccion||"",
+      Pedidos: DB.orders.filter(o=>o.clienteId===c.id).length
+    }));
+    exportRowsToExcel("clientes_marqueza.xlsx","Clientes",rows);
+  }, "export-clientes", "clientes_marqueza.png");
+}
+function renderEditClientModal(m){
+  const c = m.client;
+  return `
+  <div class="modal-box" style="padding:24px;max-width:400px;">
+    <div style="font-weight:700;font-size:16px;margin-bottom:14px;">${c?"Editar cliente":"Nuevo cliente"}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div><label class="field-label">Nombre</label><input type="text" id="ec-nombre" value="${escapeHtml(c?.nombre||"")}"></div>
+      <div><label class="field-label">Teléfono</label><input type="text" id="ec-telefono" value="${escapeHtml(c?.telefono||"")}"></div>
+      <div><label class="field-label">Dirección habitual</label><input type="text" id="ec-direccion" value="${escapeHtml(c?.direccion||"")}"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+      <button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="ec-save">Guardar</button>
+    </div>
+  </div>`;
+}
+
+/* ============================= REPORTES ============================= */
+function renderReportes(){
+  const rendidos = DB.orders.filter(o=>o.estado==='rendido');
+  const totalVendido = rendidos.reduce((s,o)=>s+orderTotal(o),0);
+  const diferencias = rendidos.filter(o=>o.diferenciaCaja);
+  return `
+  <div id="export-reportes">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+    <div class="card" style="padding:16px;"><div class="field-label">Pedidos rendidos</div><div class="font-display" style="font-size:28px;">${rendidos.length}</div></div>
+    <div class="card" style="padding:16px;"><div class="field-label">Total facturado (rendido)</div><div class="font-display" style="font-size:28px;">${fmtMoney(totalVendido)}</div></div>
+    <div class="card" style="padding:16px;"><div class="field-label">Diferencias de caja</div><div class="font-display" style="font-size:28px;color:${diferencias.length?'var(--red)':'inherit'}">${diferencias.length}</div></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div style="font-weight:700;">Movimientos de stock recientes</div>
+    ${exportToolbar("exp-rep")}
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Fecha</th><th>Producto</th><th>Tipo</th><th>Cantidad</th><th>Motivo</th></tr></thead>
+      <tbody>
+      ${DB.stockmoves.length===0 ? `<tr><td colspan="5" style="text-align:center;color:var(--ink-soft);padding:18px;">Todavía no hay movimientos registrados.</td></tr>` :
+      DB.stockmoves.slice(0,40).map(mv => `
+        <tr>
+          <td class="font-mono" style="font-size:12px;">${new Date(mv.fecha).toLocaleString("es-AR")}</td>
+          <td>${escapeHtml(mv.productoNombre)}</td>
+          <td>${mv.tipo==='entrada'?'<span style="color:var(--teal);font-weight:700;">Entrada</span>':'<span style="color:var(--red);font-weight:700;">Salida</span>'}</td>
+          <td>${mv.cantidad}</td>
+          <td>${escapeHtml(mv.motivo)}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>
+  </div>`;
+}
+function bindReportes(){
+  bindExportToolbar("exp-rep", () => {
+    const rows = DB.stockmoves.map(mv => ({
+      Fecha: new Date(mv.fecha).toLocaleString("es-AR"), Producto: mv.productoNombre,
+      Tipo: mv.tipo==='entrada'?'Entrada':'Salida', Cantidad: mv.cantidad, Motivo: mv.motivo
+    }));
+    exportRowsToExcel("reportes_stock_marqueza.xlsx","Movimientos",rows);
+  }, "export-reportes", "reportes_marqueza.png");
+}
+
+/* ============================= AJUSTES ============================= */
+function renderAjustes(){
+  const enabled = DB.config.adminPasswordEnabled;
+  return `
+  <div class="card" style="padding:20px;max-width:440px;">
+    <div style="font-weight:700;margin-bottom:4px;">Cuenta y clave de administrador</div>
+    <div style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;">
+      ${enabled ? "Actualmente el ingreso como Administración pide email y clave." : "Actualmente el ingreso como Administración es libre, sin clave."}
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label class="field-label">Email de la cuenta (identificador, no envía correos)</label>
+      <input type="text" id="aj-email" value="${escapeHtml(DB.config.adminEmail||"")}">
+    </div>
+
+    ${enabled ? `
+      <button class="btn btn-ghost btn-sm" id="aj-disable" style="margin-bottom:16px;">Quitar clave (dejar acceso libre)</button>
+    ` : ""}
+
+    <div style="font-weight:600;font-size:13.5px;margin-bottom:8px;">${enabled ? "Cambiar clave" : "Configurar una clave"}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div><label class="field-label">Nueva clave</label><input type="password" id="aj-pass1"></div>
+      <div><label class="field-label">Repetir clave</label><input type="password" id="aj-pass2"></div>
+      <button class="btn btn-primary" id="aj-save" style="align-self:flex-start;">${enabled ? "Actualizar clave" : "Activar clave"}</button>
+    </div>
+    <div style="margin-top:14px;">
+      <button class="btn btn-ghost btn-sm" id="aj-save-email">Guardar solo el email</button>
+    </div>
+  </div>
+  <div style="margin-top:16px;font-size:12.5px;color:var(--ink-soft);max-width:420px;">
+    Todos los datos (pedidos, clientes, productos y stock) se guardan en un almacenamiento compartido del sistema: cualquier computadora que abra este mismo enlace ve y edita la misma base de datos automáticamente.
+  </div>`;
+}
+function bindAjustes(){
+  const btn = document.getElementById("aj-save");
+  if(btn) btn.onclick = async () => {
+    const p1 = document.getElementById("aj-pass1").value;
+    const p2 = document.getElementById("aj-pass2").value;
+    if(!p1 || p1.length<4){ showToast("La clave debe tener al menos 4 caracteres","error"); return; }
+    if(p1!==p2){ showToast("Las claves no coinciden","error"); return; }
+    DB.config.adminPassword = p1;
+    DB.config.adminPasswordEnabled = true;
+    DB.config.adminEmail = document.getElementById("aj-email").value.trim() || DB.config.adminEmail;
+    await persist("config");
+    showToast("Clave configurada");
+  };
+  const btnEmail = document.getElementById("aj-save-email");
+  if(btnEmail) btnEmail.onclick = async () => {
+    const email = document.getElementById("aj-email").value.trim();
+    if(!email){ showToast("Ingresá un email","error"); return; }
+    DB.config.adminEmail = email;
+    await persist("config");
+    showToast("Email guardado");
+  };
+  const dis = document.getElementById("aj-disable");
+  if(dis) dis.onclick = async () => {
+    if(!confirm("¿Quitar la clave? El acceso como Administración quedará libre para cualquiera.")) return;
+    DB.config.adminPasswordEnabled = false;
+    DB.config.adminPassword = "";
+    await persist("config");
+    showToast("Clave quitada, acceso libre");
+  };
+}
+
+/* ============================= MODAL DISPATCH ============================= */
+function renderModal(){
+  const m = state.modal;
+  let inner = "";
+  if(m.type==="new-order") inner = renderNewOrderModal(m);
+  else if(m.type==="view-order") inner = renderViewOrderModal(m);
+  else if(m.type==="edit-product") inner = renderEditProductModal(m);
+  else if(m.type==="stock-move") inner = renderStockMoveModal(m);
+  else if(m.type==="edit-client") inner = renderEditClientModal(m);
+  return `<div class="modal-overlay" id="modal-overlay">${inner}</div>`;
+}
+
+function bindModal(){
+  const overlay = document.getElementById("modal-overlay");
+  if(overlay) overlay.onclick = (e) => { if(e.target.id==="modal-overlay"){ state.modal=null; render(); } };
+  const cancel = document.getElementById("modal-cancel");
+  if(cancel) cancel.onclick = () => { state.modal=null; render(); };
+
+  const m = state.modal;
+  if(m.type==="new-order") bindNewOrderModal(m);
+  else if(m.type==="view-order") bindViewOrderModal(m);
+  else if(m.type==="edit-product") bindEditProductModal(m);
+  else if(m.type==="stock-move") bindStockMoveModal(m);
+  else if(m.type==="edit-client") bindEditClientModal(m);
+}
+
+function bindNewOrderModal(m){
+  const clienteSel = document.getElementById("no-cliente");
+  clienteSel.onchange = () => { m.clienteId = clienteSel.value || null; render(); };
+
+  document.getElementById("no-add-btn").onclick = () => {
+    const pid = document.getElementById("no-add-product").value;
+    const qty = Number(document.getElementById("no-add-qty").value);
+    if(!pid || !qty || qty<=0){ showToast("Elegí un producto y una cantidad válida","error"); return; }
+    const prod = productById(pid);
+    m.items.push({productId:pid, cantidad:qty, precioUnitario:prod.precio});
+    render();
+  };
+  document.querySelectorAll("[data-remove-item]").forEach(b => b.onclick = () => {
+    m.items.splice(Number(b.dataset.removeItem),1); render();
+  });
+
+  document.getElementById("no-save").onclick = async () => {
+    let clienteId = clienteSel.value;
+    if(clienteId==="__new__"){
+      const nombre = document.getElementById("nc-nombre").value.trim();
+      if(!nombre){ showToast("Ingresá el nombre del cliente nuevo","error"); return; }
+      const nc = {id:uid("cli"), nombre, telefono:document.getElementById("nc-telefono").value.trim(), direccion: document.getElementById("no-ubicacion").value.trim()};
+      DB.clients.push(nc);
+      await persist("clients");
+      clienteId = nc.id;
+    }
+    if(!clienteId){ showToast("Seleccioná un cliente","error"); return; }
+    if(m.items.length===0){ showToast("Agregá al menos un producto","error"); return; }
+    const fechaEntrega = document.getElementById("no-fecha-entrega").value;
+    if(!fechaEntrega){ showToast("Ingresá la fecha de entrega","error"); return; }
+
+    const order = {
+      id: uid("ord"), codigo: nextOrderCode(), clienteId,
+      ubicacion: document.getElementById("no-ubicacion").value.trim(),
+      fechaPedido: document.getElementById("no-fecha-pedido").value,
+      fechaPreparacion: document.getElementById("no-fecha-prep").value,
+      fechaEntrega, items: m.items.map(it=>({...it})),
+      observaciones: document.getElementById("no-obs").value.trim(),
+      estado: "pendiente", repartidor:null, fechaCreacion: new Date().toISOString()
+    };
+    await saveOrder(order);
+    state.modal = null;
+    showToast(`Pedido ${order.codigo} creado`);
+  };
+}
+
+function bindViewOrderModal(m){
+  const printBtn = document.getElementById("btn-print-order");
+  if(printBtn) printBtn.onclick = () => window.print();
+  const cancelOrderBtn = document.getElementById("btn-cancel-order");
+  if(cancelOrderBtn) cancelOrderBtn.onclick = async () => {
+    if(!confirm("¿Cancelar este pedido?")) return;
+    DB.orders = DB.orders.filter(o=>o.id!==m.orderId);
+    await persist("orders");
+    state.modal = null;
+    showToast("Pedido cancelado");
+  };
+}
+
+function bindEditProductModal(m){
+  document.getElementById("ep-save").onclick = async () => {
+    const nombre = document.getElementById("ep-nombre").value.trim();
+    const precio = Number(document.getElementById("ep-precio").value);
+    const unidad = document.getElementById("ep-unidad").value.trim() || "unidad";
+    const stockMinimo = Number(document.getElementById("ep-min").value)||0;
+    if(!nombre){ showToast("Ingresá el nombre del producto","error"); return; }
+    if(m.product){
+      Object.assign(m.product, {nombre, precio, unidad, stockMinimo});
+    } else {
+      const stock = Number(document.getElementById("ep-stock").value)||0;
+      DB.products.push({id:uid("prod"), nombre, precio, stock, unidad, stockMinimo});
+    }
+    await persist("products");
+    state.modal = null;
+    showToast("Producto guardado");
+  };
+  const del = document.getElementById("ep-delete");
+  if(del) del.onclick = async () => {
+    if(!confirm("¿Eliminar este producto?")) return;
+    DB.products = DB.products.filter(p=>p.id!==m.product.id);
+    await persist("products");
+    state.modal = null;
+    showToast("Producto eliminado");
+  };
+}
+
+function bindStockMoveModal(m){
+  m.tipo = m.tipo || "entrada";
+  document.getElementById("sm-entrada").onclick = () => { m.tipo="entrada"; render(); };
+  document.getElementById("sm-salida").onclick = () => { m.tipo="salida"; render(); };
+  document.getElementById("sm-save").onclick = async () => {
+    const cantidad = Number(document.getElementById("sm-cantidad").value);
+    const motivo = document.getElementById("sm-motivo").value.trim();
+    if(!cantidad || cantidad<=0){ showToast("Ingresá una cantidad válida","error"); return; }
+    await addStockMove({productId:m.productId, tipo:m.tipo||"entrada", cantidad, motivo});
+    state.modal = null;
+    showToast("Movimiento registrado");
+  };
+}
+
+function bindEditClientModal(m){
+  document.getElementById("ec-save").onclick = async () => {
+    const nombre = document.getElementById("ec-nombre").value.trim();
+    if(!nombre){ showToast("Ingresá el nombre","error"); return; }
+    const telefono = document.getElementById("ec-telefono").value.trim();
+    const direccion = document.getElementById("ec-direccion").value.trim();
+    if(m.client){ Object.assign(m.client, {nombre, telefono, direccion}); }
+    else { DB.clients.push({id:uid("cli"), nombre, telefono, direccion}); }
+    await persist("clients");
+    state.modal = null;
+    showToast("Cliente guardado");
+  };
+}
+
+/* ============================= EXPORTAR (EXCEL / IMAGEN) ============================= */
+function exportRowsToExcel(filename, sheetName, rows){
+  if(!rows || rows.length===0){ showToast("No hay datos para exportar","error"); return; }
+  try{
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0,31));
+    XLSX.writeFile(wb, filename);
+  }catch(e){ showToast("No se pudo generar el Excel","error"); }
+}
+
+async function exportElementToImage(elId, filename){
+  const el = document.getElementById(elId);
+  if(!el){ showToast("No se encontró el contenido a exportar","error"); return; }
+  try{
+    const canvas = await html2canvas(el, {backgroundColor:"#ffffff", scale:2});
+    const link = document.createElement("a");
+    link.download = filename;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }catch(e){ showToast("No se pudo generar la imagen","error"); }
+}
+
+function exportToolbar(idPrefix, excelFn, imgTargetId, imgFilename){
+  return `
+  <div style="display:flex;gap:6px;">
+    <button class="btn btn-ghost btn-sm" id="${idPrefix}-xls">⬇ Excel</button>
+    <button class="btn btn-ghost btn-sm" id="${idPrefix}-img">⬇ Imagen</button>
+  </div>`;
+}
+function bindExportToolbar(idPrefix, excelFn, imgTargetId, imgFilename){
+  const bx = document.getElementById(idPrefix+"-xls");
+  if(bx) bx.onclick = excelFn;
+  const bi = document.getElementById(idPrefix+"-img");
+  if(bi) bi.onclick = () => exportElementToImage(imgTargetId, imgFilename);
+}
+
+/* ============================= INICIO ============================= */
+loadAll();
+</script>
+</body>
+</html>
